@@ -18,9 +18,18 @@
 
 package org.ballerinalang.mime.util;
 
+import io.ballerina.runtime.api.TypeTags;
+import io.ballerina.runtime.api.types.ArrayType;
+import io.ballerina.runtime.api.types.Type;
 import io.ballerina.runtime.api.values.BObject;
+import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import static org.ballerinalang.mime.util.MimeConstants.MEDIA_TYPE_FIELD;
+import static org.ballerinalang.mime.util.MimeConstants.PRIMARY_TYPE_FIELD;
+import static org.ballerinalang.mime.util.MimeConstants.SUBTYPE_FIELD;
+import static org.mockito.Mockito.when;
 
 /**
  * A unit test class for Mime module MimeUtil class functions.
@@ -75,6 +84,46 @@ public class MimeUtilTest {
     public void testGetNewMultipartDelimiter() {
         String returnVal = MimeUtil.getNewMultipartDelimiter();
         Assert.assertNotNull(returnVal);
+    }
+
+    @Test
+    public void testIsNestedPartsAvailableWithoutBodyParts() {
+        BObject bodyPart = Mockito.mock(BObject.class);
+        BObject mediaType = Mockito.mock(BObject.class);
+        BObject field = Mockito.mock(BObject.class);
+        when(field.toString()).thenReturn("testField");
+        when(mediaType.get(PRIMARY_TYPE_FIELD)).thenReturn(field);
+        when(mediaType.get(SUBTYPE_FIELD)).thenReturn(field);
+        when(bodyPart.get(MEDIA_TYPE_FIELD)).thenReturn(mediaType);
+        boolean returnVal = MimeUtil.isNestedPartsAvailable(bodyPart);
+        Assert.assertFalse(returnVal);
+    }
+
+    @Test
+    public void testIsJsonCompatibleWithInCompatibleTag() {
+        Type type = Mockito.mock(Type.class);
+        when(type.getTag()).thenReturn(TypeTags.BYTE_TAG);
+        boolean returnVal = MimeUtil.isJSONCompatible(type);
+        Assert.assertFalse(returnVal);
+    }
+
+    @Test
+    public void testIsJsonCompatibleWithArrayTag() {
+        // When Element type is compatible
+        ArrayType arrayType = Mockito.mock(ArrayType.class);
+        Type type = Mockito.mock(Type.class);
+        when(type.getTag()).thenReturn(TypeTags.INT_TAG);
+        when(arrayType.getTag()).thenReturn(TypeTags.ARRAY_TAG);
+        when(arrayType.getElementType()).thenReturn(type);
+        boolean returnVal = MimeUtil.isJSONCompatible(arrayType);
+        Assert.assertTrue(returnVal);
+
+        // When Element type is not compatible
+        when(type.getTag()).thenReturn(TypeTags.BYTE_TAG);
+        when(arrayType.getTag()).thenReturn(TypeTags.ARRAY_TAG);
+        when(arrayType.getElementType()).thenReturn(type);
+        returnVal = MimeUtil.isJSONCompatible(arrayType);
+        Assert.assertFalse(returnVal);
     }
 
 }
